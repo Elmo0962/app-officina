@@ -1,189 +1,616 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="it">
 <head>
     <meta charset="UTF-8">
+    <!--
+      viewport: width=device-width impedisce lo zoom automatico su mobile.
+      initial-scale=1.0 garantisce che l'app parta al 100% senza zoom.
+      Fondamentale per l'uso su tablet a parete.
+    -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>App Officina</title>
+    <title>App Procedure Officina</title>
     <link rel="stylesheet" href="style.css">
 </head>
+
+<!--
+  STRUTTURA HTML — App Procedure Officina
+  ========================================
+  L'app è composta da due aree principali:
+
+  1. #schermata-login (fuori da #app)
+     Schermata di login a tutto schermo (position:fixed, z-index:1000).
+     Contiene due pannelli:
+     - #login-azienda: selezione dell'officina (prima volta o dopo cambio)
+     - #login-pin: tastiera PIN + selezione operaio
+
+  2. #app (nascosto durante il login)
+     Contiene tutte le schermate dell'applicazione.
+     Una sola schermata è visibile alla volta — le altre hanno display:none.
+     La navigazione è gestita da mostraSchermata() in app.js.
+
+  3. #barra-utenti (fuori da #app, fixed in basso)
+     Barra con i due slot utente per il cambio rapido tra operai.
+     Visibile dopo il login, nascosta durante il login.
+
+  4. #notifica (fuori da #app, fixed in basso)
+     Toast notification per conferme e messaggi di errore.
+     Sostituisce alert() — funziona correttamente su mobile.
+
+  SCHERMATE DELL'APP:
+  - schermata-home: home operaio con categorie e guide recenti
+  - schermata-lista: lista guide filtrate per categoria con ricerca
+  - schermata-step: step di una guida con completamento e segnalazioni
+  - schermata-proponi: form per proporre una nuova guida (operaio)
+  - schermata-supervisore: gestione errori, bozze, attività, suggerimenti
+  - schermata-titolare: dashboard read-only con statistiche
+  - schermata-admin: gestione multi-azienda e operai
+
+  MODALI:
+  - modale-errore: segnalazione problema su uno step
+  - modale-suggerimento: proposta di modifica a uno step
+  - modale-nuova-azienda: creazione nuova azienda (admin)
+  - modale-nuovo-operaio: creazione/modifica operaio (admin)
+
+  NOTA: #barra-utenti è posizionata PRIMA di <body> per motivi storici
+  di sviluppo — funziona correttamente ma idealmente andrebbe dentro <body>.
+-->
+
+<!-- ── BARRA UTENTI (MULTI-SLOT) ─────────────────────────────────────────
+  Barra fissa in basso con i due slot utente.
+  Visibile dopo il login tramite aggiornaBarraUtenti() in app.js.
+  - slot-1, slot-2: i due posti disponibili sul tablet
+  - slot-utente.attivo: indica l'utente attualmente in uso
+  - avatar: mostra l'iniziale del nome o "+" se lo slot è vuoto
+  - nome: primo nome dell'operaio o "Aggiungi"
+  Per aggiungere un terzo slot: duplicare il div e aggiornare app.js.
+-->
+<div id="barra-utenti" style="display:none">
+  <div id="slot-1" class="slot-utente attivo">
+    <div class="slot-avatar" id="avatar-1"></div>
+    <div class="slot-nome" id="nome-1">—</div>
+  </div>
+  <div id="slot-2" class="slot-utente">
+    <div class="slot-avatar" id="avatar-2">+</div>
+    <div class="slot-nome" id="nome-2">Aggiungi</div>
+  </div>
+</div>
+
 <body>
-    <div id="app">
-        <div id="schermata-home">
-  <div class="home-header">
-    <p class="home-data" id="home-data"></p>
-    <h1 class="home-saluto">Ciao, Davide 👋</h1>
-  </div>
 
-  <div id="sezione-recenti" style="display:none">
-    <h2 class="sezione-titolo">Hai usato di recente</h2>
-    <div id="lista-recenti"></div>
-  </div>
+<!-- ══════════════════════════════════════════════════════════════════════
+  SCHERMATA LOGIN
+  Sovrapposta all'app con position:fixed e z-index:1000.
+  Nascosta dopo autenticazione riuscita (nascondiLogin() in app.js).
+  Mostra due pannelli alternativi: selezione azienda o tastiera PIN.
+  ══════════════════════════════════════════════════════════════════════ -->
+<div id="schermata-login">
 
-  <h2 class="sezione-titolo">Cosa vuoi fare oggi?</h2>
-  <div id="categorie-card">
-    <div class="card-categoria" data-categoria="Carpenteria">
-      <span class="categoria-emoji">🔧</span>
-      <span class="categoria-nome">Carpenteria</span>
+  <!-- Pannello 1: Selezione Azienda
+    Mostrato solo la prima volta o dopo "Cambia officina".
+    Le card azienda vengono generate dinamicamente da caricaAziende() in app.js.
+    Dopo la selezione, l'azienda viene salvata in localStorage per sessioni future.
+  -->
+  <div id="login-azienda" style="display:none">
+    <div class="login-header">
+      <h1>App Procedure Officina</h1>
+      <p>Seleziona la tua officina</p>
     </div>
-    <div class="card-categoria" data-categoria="Serbatoi">
-      <span class="categoria-emoji">🛢️</span>
-      <span class="categoria-nome">Serbatoi</span>
-    </div>
-    <div class="card-categoria" data-categoria="Piping">
-      <span class="categoria-emoji">⚙️</span>
-      <span class="categoria-nome">Piping</span>
-    </div>
-    <div class="card-categoria" data-categoria="Collaudi">
-      <span class="categoria-emoji">✅</span>
-      <span class="categoria-nome">Collaudi</span>
-    </div>
-    <div class="card-categoria" data-categoria="Attrezzatura">
-      <span class="categoria-emoji">🪛</span>
-      <span class="categoria-nome">Attrezzatura</span>
-    </div>
-    <div class="card-categoria proponi" id="btn-proponi-guida">
-      <span class="categoria-emoji">➕</span>
-      <span class="categoria-nome">Proponi guida</span>
-    </div>
-    <div class="card-categoria supervisore" data-schermata="schermata-supervisore">
-      <span class="categoria-emoji">👔</span>
-      <span class="categoria-nome">Supervisore</span>
-    </div>
-  </div>
-</div>
-
-<div id="schermata-proponi" style="display:none">
-  <div class="header">
-    <button id="btn-torna-home-proponi">← Torna alla home</button>
-    <h1 style="color:#1C2B3A">Proponi una guida</h1>
+    <!-- Le card azienda vengono inserite qui da caricaAziende() in app.js -->
+    <div id="lista-aziende"></div>
   </div>
 
-  <div class="form-campo">
-    <label class="form-label">Titolo guida</label>
-    <input type="text" id="input-titolo" placeholder="Es. Numero disegno">
-  </div>
-
-  <div class="form-campo">
-    <label class="form-label">Categoria</label>
-    <select id="input-categoria">
-      <option value="">Scegli categoria...</option>
-      <option value="Carpenteria">Carpenteria</option>
-      <option value="Serbatoi">Serbatoi</option>
-      <option value="Piping">Piping</option>
-      <option value="Collaudi">Collaudi</option>
-      <option value="Attrezzatura">Attrezzatura</option>
-    </select>
-  </div>
-
-  <div class="form-campo">
-    <label class="form-label">Descrizione</label>
-    <textarea id="input-descrizione" placeholder="Es. Descrizione presente sul disegno tecnico"></textarea>
-  </div>
-
-  <div id="contenitore-step">
-    <h2 class="sezione-titolo" style="margin-bottom:12px">Step della guida</h2>
-    <div id="lista-step-form"></div>
-    <button id="btn-aggiungi-step">+ Aggiungi step</button>
-  </div>
-
-  <button id="btn-salva-guida">Invia per approvazione</button>
-
-</div>
-
-<div id="schermata-lista" style="display:none">
-  <div class="header">
-    <button id="btn-torna-home">← Torna alla home</button>
-    <h1 id="titolo-categoria"></h1>
-    <input type="text" id="cerca" placeholder="Cerca una guida...">
-  </div>
-  <div id="lista-guide"></div>
-</div>
-        <div id="schermata-step" style="display: none;">
-            <div class="header">
-                <button id="btn-torna">Torna alle guide</button>
-                <h1 id="titolo-guida"></h1>
-            </div>
-            <div id="lista-step"></div>
-            <button id="btn-chiudi-sessione">Chiudi sessione</button>
-        </div>
-
-        <div id="schermata-supervisore" style="display:none">
-  <div class="header">
-    <button id="btn-torna-home-sup">← Torna alla home</button>
-    <h1 style="color:#1C2B3A">Vista Supervisore</h1>
-  </div>
-
-  <div class="sezione-sup">
-    <h2 class="sezione-titolo-sup">🔴 Errori aperti</h2>
-    <div id="lista-errori-aperti"></div>
-  </div>
-
-  <div class="sezione-sup">
-    <h2 class="sezione-titolo-sup">📋 Guide in bozza</h2>
-    <div id="lista-bozze"></div>
-  </div>
-
-  <div class="sezione-sup">
-    <h2 class="sezione-titolo-sup">📊 Attività recente</h2>
-    <div id="lista-attivita"></div>
-
-    <div class="sezione-sup">
-      <h2 class="sezione-titolo-sup">✏️ Suggerimenti operai</h2>
-      <div id="lista-suggerimenti"></div>
+  <!-- Pannello 2: Inserimento PIN
+    Mostrato dopo la selezione azienda.
+    L'operaio seleziona prima il proprio nome (chip), poi inserisce il PIN.
+    La tastiera usa event delegation su #tastiera-pin (un solo listener).
+    Il bottone cancella (⌫) ha id="btn-cancella" e NON ha data-n.
+  -->
+  <div id="login-pin" style="display:none">
+    <div class="login-header">
+      <!-- Nome azienda selezionata — popolato da caricaAziende() -->
+      <h1 id="login-azienda-nome"></h1>
+      <p>Inserisci il tuo PIN</p>
     </div>
 
+    <!-- Chip operai: generati da caricaOperaiAzienda() in app.js.
+      L'operaio deve selezionare il proprio nome prima di inserire il PIN.
+      La chip selezionata ha classe .selezionato -->
+    <div id="login-operai-lista"></div>
+
+    <!-- Display PIN: 4 pallini che si illuminano al click dei tasti.
+      La classe .attivo viene aggiunta/rimossa da aggiornaDisplay() in app.js -->
+    <div id="pin-display">
+      <span class="pin-dot" id="dot-1"></span>
+      <span class="pin-dot" id="dot-2"></span>
+      <span class="pin-dot" id="dot-3"></span>
+      <span class="pin-dot" id="dot-4"></span>
+    </div>
+
+    <!-- Messaggio errore PIN: mostrato se il PIN non corrisponde -->
+    <div id="pin-errore" style="display:none">PIN errato. Riprova.</div>
+
+    <!-- Tastiera numerica:
+      - data-n="N" → cifra da aggiungere al buffer
+      - tasto-vuoto → spazio vuoto nella griglia 3x4 (posizione 10)
+      - tasto-cancella con id="btn-cancella" → rimuove ultima cifra
+      IMPORTANTE: il bottone cancella viene riconosciuto per ID, non per data-n
+    -->
+    <div id="tastiera-pin">
+      <button class="tasto-pin" data-n="1">1</button>
+      <button class="tasto-pin" data-n="2">2</button>
+      <button class="tasto-pin" data-n="3">3</button>
+      <button class="tasto-pin" data-n="4">4</button>
+      <button class="tasto-pin" data-n="5">5</button>
+      <button class="tasto-pin" data-n="6">6</button>
+      <button class="tasto-pin" data-n="7">7</button>
+      <button class="tasto-pin" data-n="8">8</button>
+      <button class="tasto-pin" data-n="9">9</button>
+      <button class="tasto-pin tasto-vuoto" data-n=""></button>
+      <button class="tasto-pin" data-n="0">0</button>
+      <button class="tasto-pin tasto-cancella" id="btn-cancella">⌫</button>
+    </div>
+
+    <!-- Torna alla selezione azienda: rimuove l'azienda da localStorage -->
+    <button id="btn-cambia-azienda">← Cambia officina</button>
   </div>
-</div>
-        <div id="modale-errore" style="display:none">
-           <div id="sfondo-modale"></div>
-           <div id="contenuto-modale">
-              <h2>Segnala problema</h2>
-              <p id="modale-step-info"></p>
-              <textarea id="errore-descrizione" placeholder="Descrivi il problema..."></textarea>
-              <button id="btn-invia-errore">Invia segnalazione</button>
-            <button id="btn-annulla-errore">Annulla</button>
-          </div>
-        </div>
-        <div id="modale-suggerimento" style="display:none">
-  <div id="sfondo-modale-sug"></div>
-  <div id="contenuto-modale-sug">
-    <h2>Suggerisci modifica</h2>
-    <p id="sug-step-info"></p>
+
+</div><!-- fine #schermata-login -->
+
+
+<!-- ══════════════════════════════════════════════════════════════════════
+  APP PRINCIPALE
+  Nascosta durante il login (display:none impostato da app.js all'avvio).
+  Mostrata dopo autenticazione riuscita da nascondiLogin() in app.js.
+  Contiene tutte le schermate — una sola visibile alla volta.
+  ══════════════════════════════════════════════════════════════════════ -->
+<div id="app">
+
+  <!-- ── SCHERMATA HOME OPERAIO ───────────────────────────────────────
+    Prima schermata vista dall'operaio dopo il login.
+    Contiene:
+    - Saluto con nome e data (TODO: nome hardcodato "Davide" — dinamicizzare con login)
+    - Sezione guide recenti (nascosta se vuota, max 3 guide)
+    - Griglia categorie: 5 categorie + proponi guida + supervisore
+    La card .supervisore è nascosta per il ruolo operaio (app.js → avviaPerRuolo)
+    La card .proponi apre il form di proposta guida
+  -->
+  <div id="schermata-home">
+    <div class="home-header">
+      <p class="home-data" id="home-data"></p>
+      <!-- TODO: sostituire "Davide" con operaioCorrente.nome dopo il login -->
+      <h1 class="home-saluto">Ciao, Davide 👋</h1>
+    </div>
+
+    <!-- Sezione guide recenti: popolata da mostraRecenti() in app.js.
+      Nascosta di default, mostrata quando ci sono guide visitate nella sessione. -->
+    <div id="sezione-recenti" style="display:none">
+      <h2 class="sezione-titolo">Hai usato di recente</h2>
+      <div id="lista-recenti"></div>
+    </div>
+
+    <h2 class="sezione-titolo">Cosa vuoi fare oggi?</h2>
+
+    <!-- Griglia categorie 2 colonne (CSS grid).
+      data-categoria: valore usato per filtrare le guide in filtraGuide()
+      Le card speciali (.proponi, .supervisore) hanno comportamento diverso
+      gestito in app.js tramite classList.contains() -->
+    <div id="categorie-card">
+      <div class="card-categoria" data-categoria="Carpenteria">
+        <span class="categoria-emoji">🔧</span>
+        <span class="categoria-nome">Carpenteria</span>
+      </div>
+      <div class="card-categoria" data-categoria="Serbatoi">
+        <span class="categoria-emoji">🛢️</span>
+        <span class="categoria-nome">Serbatoi</span>
+      </div>
+      <div class="card-categoria" data-categoria="Piping">
+        <span class="categoria-emoji">⚙️</span>
+        <span class="categoria-nome">Piping</span>
+      </div>
+      <div class="card-categoria" data-categoria="Collaudi">
+        <span class="categoria-emoji">✅</span>
+        <span class="categoria-nome">Collaudi</span>
+      </div>
+      <div class="card-categoria" data-categoria="Attrezzatura">
+        <span class="categoria-emoji">🪛</span>
+        <span class="categoria-nome">Attrezzatura</span>
+      </div>
+      <!-- Card speciale: apre la schermata di proposta guida.
+        Visibile a tutti i ruoli. -->
+      <div class="card-categoria proponi" id="btn-proponi-guida">
+        <span class="categoria-emoji">➕</span>
+        <span class="categoria-nome">Proponi guida</span>
+      </div>
+      <!-- Card speciale: apre la vista supervisore.
+        Nascosta per il ruolo operaio da avviaPerRuolo() in app.js -->
+      <div class="card-categoria supervisore" data-schermata="schermata-supervisore">
+        <span class="categoria-emoji">👔</span>
+        <span class="categoria-nome">Supervisore</span>
+      </div>
+    </div>
+  </div><!-- fine #schermata-home -->
+
+
+  <!-- ── SCHERMATA PROPOSTA GUIDA ─────────────────────────────────────
+    Form per proporre una nuova guida operativa.
+    Accessibile a tutti i ruoli dalla card "Proponi guida" in home.
+    La guida viene salvata con approvata=false → visibile al supervisore come bozza.
+    Gli step vengono aggiunti dinamicamente da aggiungiStepForm() in app.js.
+    Le foto degli step vengono caricate su Supabase Storage (bucket: guide-photos).
+  -->
+  <div id="schermata-proponi" style="display:none">
+    <div class="header">
+      <button id="btn-torna-home-proponi">← Torna alla home</button>
+      <h1 style="color:#1C2B3A">Proponi una guida</h1>
+    </div>
 
     <div class="form-campo">
-      <label class="form-label">Tipo di modifica</label>
-      <select id="sug-tipo">
-        <option value="">Scegli...</option>
-        <option value="Modificare il testo">Modificare il testo</option>
-        <option value="Aggiungere una foto">Aggiungere una foto</option>
-        <option value="Cambiare la criticità">Cambiare la criticità</option>
-        <option value="Aggiungere note">Aggiungere note</option>
-        <option value="Altro">Altro</option>
+      <label class="form-label">Titolo guida</label>
+      <!-- Placeholder suggerisce il numero del disegno tecnico come riferimento -->
+      <input type="text" id="input-titolo" placeholder="Es. Numero disegno">
+    </div>
+
+    <div class="form-campo">
+      <label class="form-label">Categoria</label>
+      <!-- Le categorie devono corrispondere a quelle in #categorie-card -->
+      <select id="input-categoria">
+        <option value="">Scegli categoria...</option>
+        <option value="Carpenteria">Carpenteria</option>
+        <option value="Serbatoi">Serbatoi</option>
+        <option value="Piping">Piping</option>
+        <option value="Collaudi">Collaudi</option>
+        <option value="Attrezzatura">Attrezzatura</option>
       </select>
     </div>
 
     <div class="form-campo">
       <label class="form-label">Descrizione</label>
-      <textarea id="sug-descrizione" placeholder="Descrivi cosa cambieresti e perché..."></textarea>
+      <textarea id="input-descrizione" placeholder="Es. Descrizione presente sul disegno tecnico"></textarea>
     </div>
 
-    <div class="form-campo">
-      <label class="form-label">Urgenza</label>
-      <select id="sug-urgenza">
-        <option value="Quando puoi">Quando puoi</option>
-        <option value="È importante">È importante</option>
-      </select>
+    <!-- Contenitore step: i blocchi step vengono inseriti qui da aggiungiStepForm().
+      Ogni blocco ha: testo, note, criticità (select), foto (file input), rimuovi. -->
+    <div id="contenitore-step">
+      <h2 class="sezione-titolo" style="margin-bottom:12px">Step della guida</h2>
+      <div id="lista-step-form"></div>
+      <button id="btn-aggiungi-step">+ Aggiungi step</button>
     </div>
 
-    <button id="btn-invia-suggerimento">Invia suggerimento</button>
-    <button id="btn-annulla-suggerimento">Annulla</button>
+    <!-- Invia: chiama salvaGuida() in app.js -->
+    <button id="btn-salva-guida">Invia per approvazione</button>
+  </div><!-- fine #schermata-proponi -->
+
+
+  <!-- ── SCHERMATA LISTA GUIDE ────────────────────────────────────────
+    Lista delle guide approvate filtrate per categoria selezionata.
+    Le guide vengono generate da mostraGuide() in app.js.
+    La ricerca in tempo reale usa filtraGuide() collegata all'input #cerca.
+    Il titolo della categoria viene impostato al click sulla card categoria.
+  -->
+  <div id="schermata-lista" style="display:none">
+    <div class="header">
+      <button id="btn-torna-home">← Torna alla home</button>
+      <h1 id="titolo-categoria"></h1>
+      <input type="text" id="cerca" placeholder="Cerca una guida...">
+    </div>
+    <!-- Le card guida vengono inserite qui da mostraGuide() in app.js -->
+    <div id="lista-guide"></div>
+  </div><!-- fine #schermata-lista -->
+
+
+  <!-- ── SCHERMATA STEP ───────────────────────────────────────────────
+    Schermata principale di esecuzione di una guida.
+    Usata in tre modalità diverse:
+    1. Esecuzione normale: operaio segue gli step, li completa, segnala problemi
+    2. Ripresa sessione: riprendiGuida() mostra gli step già completati in verde
+    3. Anteprima bozza: apriAnteprimaBozza() mostra gli step senza bottoni azione
+
+    Il pulsante "Torna" ha comportamento diverso nelle tre modalità:
+    - Normale: torna alla lista guide (listener fisso in app.js)
+    - Anteprima bozza: torna al supervisore (onclick sovrascritta da apriAnteprimaBozza)
+
+    Gli step vengono generati dinamicamente da apriGuida() o riprendiGuida().
+    Ogni step contiene: numero, badge criticità, testo, note, foto, bottoni azione.
+  -->
+  <div id="schermata-step" style="display:none">
+    <div class="header">
+      <button id="btn-torna">Torna alle guide</button>
+      <h1 id="titolo-guida"></h1>
+    </div>
+    <!-- Gli step vengono inseriti qui da apriGuida() o riprendiGuida() -->
+    <div id="lista-step"></div>
+    <!-- Chiude la sessione corrente e torna alla home.
+      Nascosto in modalità anteprima bozza da apriAnteprimaBozza() -->
+    <button id="btn-chiudi-sessione">Chiudi sessione</button>
+  </div><!-- fine #schermata-step -->
+
+
+  <!-- ── SCHERMATA SUPERVISORE ────────────────────────────────────────
+    Vista di gestione per il ruolo supervisore.
+    Caricata da caricaVistaSupervisore() che chiama 4 funzioni in sequenza.
+    Tutti i dati sono filtrati per l'azienda del supervisore.
+
+    Sezioni:
+    1. Errori aperti: segnalazioni non ancora risolte
+    2. Guide in bozza: guide proposte da approvare/eliminare/visionare
+    3. Attività recente: due colonne (completate | in corso)
+    4. Suggerimenti operai: proposte di modifica agli step
+  -->
+  <div id="schermata-supervisore" style="display:none">
+    <div class="header">
+      <button id="btn-torna-home-sup">← Torna alla home</button>
+      <h1 style="color:#1C2B3A">Vista Supervisore</h1>
+    </div>
+
+    <!-- Errori aperti: segnalazioni con stato='aperto' in error_log.
+      Ogni card ha: data, tipo, descrizione, bottone "Segna come risolto".
+      Popolata da caricaErroriAperti() in app.js. -->
+    <div class="sezione-sup">
+      <h2 class="sezione-titolo-sup">🔴 Errori aperti</h2>
+      <div id="lista-errori-aperti"></div>
+    </div>
+
+    <!-- Guide in bozza: guide con approvata=false.
+      Ogni card ha: titolo, bottoni Vedi / Approva / Elimina.
+      Popolata da caricaBozze() in app.js. -->
+    <div class="sezione-sup">
+      <h2 class="sezione-titolo-sup">📋 Guide in bozza</h2>
+      <div id="lista-bozze"></div>
+    </div>
+
+    <!-- Attività recente: ultime esecuzioni completate e in corso.
+      Due colonne affiancate — cliccabili per vedere gli step della guida.
+      Popolata da caricaAttivitaRecente() in app.js. -->
+    <div class="sezione-sup">
+      <h2 class="sezione-titolo-sup">📊 Attività recente</h2>
+      <div id="lista-attivita"></div>
+
+      <!-- Suggerimenti operai: proposte di modifica con stato='aperto'.
+        Ogni card ha: operaio, guida, tipo, descrizione, urgenza, "Preso in carico".
+        Popolata da caricaSuggerimenti() in app.js.
+        NOTA: sezione annidata dentro attività — da spostare al livello superiore -->
+      <div class="sezione-sup">
+        <h2 class="sezione-titolo-sup">✏️ Suggerimenti operai</h2>
+        <div id="lista-suggerimenti"></div>
+      </div>
+    </div>
+  </div><!-- fine #schermata-supervisore -->
+
+
+  <!-- ── SCHERMATA TITOLARE ───────────────────────────────────────────
+    Dashboard read-only per il ruolo titolare.
+    Solo lettura — nessun bottone di azione.
+    Caricata da caricaDashboardTitolare() in app.js.
+    Tutti i dati sono filtrati per l'azienda del titolare.
+
+    Contenuto:
+    - Data corrente in italiano
+    - 4 card statistiche: completate oggi/settimana/mese + guide attive
+    - Grafico a barre: guide completate negli ultimi 7 giorni
+    - Top 3 operai per guide completate questa settimana (con medaglie)
+    - Card errori aperti: verde se zero, rossa se > 0
+  -->
+  <div id="schermata-titolare" style="display:none">
+    <div class="header">
+      <h1 style="color:#1C2B3A">Riepilogo Officina</h1>
+      <!-- Data in formato "lunedì 13 aprile 2026" — impostata da impostaData() -->
+      <p id="titolare-data" style="color:#4B5563;font-size:14px"></p>
+    </div>
+
+    <!-- 4 card statistiche in griglia 2x2.
+      Popolate da caricaDashboardTitolare() in app.js. -->
+    <div id="titolare-cards"></div>
+
+    <!-- Grafico a barre ultimi 7 giorni.
+      Le barre vengono generate come div con altezza proporzionale al massimo.
+      Popolato da caricaDashboardTitolare() in app.js. -->
+    <div class="sezione-sup" style="margin-top:20px">
+      <h2 class="sezione-titolo-sup">📈 Guide completate — ultimi 7 giorni</h2>
+      <div id="grafico-completate"></div>
+    </div>
+
+    <!-- Top 3 operai più attivi questa settimana con medaglie 🥇🥈🥉.
+      Popolato da caricaDashboardTitolare() in app.js. -->
+    <div class="sezione-sup">
+      <h2 class="sezione-titolo-sup">🏆 Operai più attivi questa settimana</h2>
+      <div id="titolare-operai"></div>
+    </div>
+
+    <!-- Numero errori aperti: verde se 0, rosso se > 0.
+      Popolato da caricaDashboardTitolare() in app.js. -->
+    <div class="sezione-sup">
+      <h2 class="sezione-titolo-sup">🔴 Errori aperti</h2>
+      <div id="titolare-errori"></div>
+    </div>
+  </div><!-- fine #schermata-titolare -->
+
+
+  <!-- ── SCHERMATA ADMIN ──────────────────────────────────────────────
+    Pannello di gestione per il ruolo admin (solo per il gestore del servizio).
+    Permette di creare/eliminare aziende e gestire gli operai di ciascuna.
+    Caricata da caricaPannelloAdmin() in app.js.
+
+    Struttura:
+    - Lista tutte le aziende con contatori operai e guide
+    - Click su azienda: mostra la sezione operai (nascosta di default)
+    - Sezione operai: lista con modifica/eliminazione + bottone nuovo operaio
+
+    NOTA: il ruolo admin è legato a un operaio in tabella operai.
+    Attualmente visibile nella lista operai di Officina Ferretti — TODO: nasconderlo.
+  -->
+  <div id="schermata-admin" style="display:none">
+    <div class="header">
+      <h1 style="color:#1C2B3A">Pannello Admin</h1>
+    </div>
+
+    <!-- Lista aziende: popolata da caricaPannelloAdmin() in app.js.
+      Ogni card ha: nome, contatori, bottone elimina, freccia. -->
+    <div class="sezione-sup">
+      <h2 class="sezione-titolo-sup">🏭 Aziende nel sistema</h2>
+      <div id="admin-lista-aziende"></div>
+      <!-- Apre il modale per creare una nuova azienda -->
+      <button id="btn-nuova-azienda">+ Nuova azienda</button>
+    </div>
+
+    <!-- Sezione operai: nascosta di default, mostrata al click su un'azienda.
+      admin-nome-azienda: nome dell'azienda selezionata (popolato dinamicamente).
+      Lista operai: popolata da caricaOperaiAdmin() in app.js. -->
+    <div class="sezione-sup" id="admin-sezione-operai" style="display:none">
+      <h2 class="sezione-titolo-sup">👷 Operai — <span id="admin-nome-azienda"></span></h2>
+      <div id="admin-lista-operai"></div>
+      <!-- Apre il modale per aggiungere un nuovo operaio all'azienda selezionata -->
+      <button id="btn-nuovo-operaio">+ Nuovo operaio</button>
+    </div>
+  </div><!-- fine #schermata-admin -->
+
+
+  <!-- ══════════════════════════════════════════════════════════════════
+    MODALI ADMIN
+    I modali admin sono dentro #app perché usano le stesse classi CSS
+    dei modali operaio. Appaiono sopra il contenuto con position:fixed.
+  ══════════════════════════════════════════════════════════════════ -->
+
+  <!-- Modale Nuova Azienda: form per creare un'azienda in tabella companies.
+    Aperto da btn-nuova-azienda, salvato da salvaAzienda() in app.js. -->
+  <div id="modale-nuova-azienda" style="display:none">
+    <div id="sfondo-modale-az"></div><!-- overlay scuro, click chiude -->
+    <div id="contenuto-modale-az">
+      <h2>Nuova azienda</h2>
+      <div class="form-campo">
+        <label class="form-label">Nome azienda</label>
+        <input type="text" id="input-az-nome" placeholder="Es. Officina Rossi Srl">
+      </div>
+      <button id="btn-salva-azienda">Crea azienda</button>
+      <button id="btn-annulla-azienda">Annulla</button>
+    </div>
   </div>
+
+  <!-- Modale Nuovo/Modifica Operaio: form per creare o aggiornare un operaio.
+    - Creazione: adminAziendaSelezionata.id viene usato come company_id
+    - Modifica: i campi vengono precompilati con i dati di operaioInModifica
+    - Il titolo modale-op-titolo cambia dinamicamente ("Nuovo" / "Modifica")
+    - PIN: 4 cifre numeriche (type=number, maxlength=4)
+    - Ruolo: operaio/supervisore/titolare (admin non selezionabile qui per sicurezza)
+  -->
+  <div id="modale-nuovo-operaio" style="display:none">
+    <div id="sfondo-modale-op"></div><!-- overlay scuro, click chiude -->
+    <div id="contenuto-modale-op">
+      <h2 id="modale-op-titolo">Nuovo operaio</h2>
+      <div class="form-campo">
+        <label class="form-label">Nome completo</label>
+        <input type="text" id="input-op-nome" placeholder="Es. Mario Rossi">
+      </div>
+      <div class="form-campo">
+        <label class="form-label">Email</label>
+        <input type="email" id="input-op-email" placeholder="Es. mario.rossi@officina.it">
+      </div>
+      <div class="form-campo">
+        <label class="form-label">PIN (4 cifre)</label>
+        <input type="number" id="input-op-pin" placeholder="Es. 1234" maxlength="4">
+      </div>
+      <div class="form-campo">
+        <label class="form-label">Ruolo</label>
+        <select id="input-op-ruolo">
+          <option value="operaio">Operaio</option>
+          <option value="supervisore">Supervisore</option>
+          <option value="titolare">Titolare</option>
+          <!-- admin non incluso: da assegnare manualmente su Supabase -->
+        </select>
+      </div>
+      <button id="btn-salva-operaio">Salva</button>
+      <button id="btn-annulla-operaio">Annulla</button>
+    </div>
+  </div>
+
+
+  <!-- ══════════════════════════════════════════════════════════════════
+    MODALI OPERAIO
+    Usati durante l'esecuzione di una guida (schermata-step).
+  ══════════════════════════════════════════════════════════════════ -->
+
+  <!-- Modale Segnalazione Errore:
+    Aperto da apriModaleErrore() quando l'operaio preme "Segnala problema".
+    modale-step-info: mostra il testo dello step su cui si segnala il problema.
+    Il form salva in error_log con: step_id, guide_id, descrizione, stato='aperto'.
+    IMPORTANTE: guide_id è obbligatorio per il filtraggio per azienda.
+    Salvato da inviaErrore() in app.js.
+  -->
+  <div id="modale-errore" style="display:none">
+    <div id="sfondo-modale"></div><!-- overlay scuro, click chiude -->
+    <div id="contenuto-modale">
+      <h2>Segnala problema</h2>
+      <p id="modale-step-info"></p><!-- testo dello step — popolato da apriModaleErrore() -->
+      <textarea id="errore-descrizione" placeholder="Descrivi il problema..."></textarea>
+      <button id="btn-invia-errore">Invia segnalazione</button>
+      <button id="btn-annulla-errore">Annulla</button>
+    </div>
+  </div>
+
+  <!-- Modale Suggerimento Modifica:
+    Aperto da apriModaleSuggerimento() quando l'operaio preme "Suggerisci modifica".
+    Il form raccoglie: tipo di modifica, descrizione testuale, urgenza.
+    Salva in tabella suggerimenti con stato='aperto'.
+    Visibile al supervisore in "Suggerimenti operai".
+    Salvato da inviaSuggerimento() in app.js.
+  -->
+  <div id="modale-suggerimento" style="display:none">
+    <div id="sfondo-modale-sug"></div><!-- overlay scuro, click chiude -->
+    <div id="contenuto-modale-sug">
+      <h2>Suggerisci modifica</h2>
+      <p id="sug-step-info"></p><!-- testo dello step — popolato da apriModaleSuggerimento() -->
+
+      <div class="form-campo">
+        <label class="form-label">Tipo di modifica</label>
+        <select id="sug-tipo">
+          <option value="">Scegli...</option>
+          <option value="Modificare il testo">Modificare il testo</option>
+          <option value="Aggiungere una foto">Aggiungere una foto</option>
+          <option value="Cambiare la criticità">Cambiare la criticità</option>
+          <option value="Aggiungere note">Aggiungere note</option>
+          <option value="Altro">Altro</option>
+        </select>
+      </div>
+
+      <div class="form-campo">
+        <label class="form-label">Descrizione</label>
+        <textarea id="sug-descrizione" placeholder="Descrivi cosa cambieresti e perché..."></textarea>
+      </div>
+
+      <div class="form-campo">
+        <label class="form-label">Urgenza</label>
+        <select id="sug-urgenza">
+          <option value="Quando puoi">Quando puoi</option>
+          <option value="È importante">È importante</option>
+        </select>
+      </div>
+
+      <button id="btn-invia-suggerimento">Invia suggerimento</button>
+      <button id="btn-annulla-suggerimento">Annulla</button>
+    </div>
+  </div>
+
+</div><!-- fine #app -->
+
+
+<!-- ── NOTIFICA TOAST ──────────────────────────────────────────────────
+  Notifica inline che appare in basso per 3 secondi.
+  Sostituisce alert() — funziona correttamente su mobile dove alert() è bloccato.
+  La visibilità è gestita con opacity e la classe CSS .visibile (non display).
+  Questo permette l'animazione fade-in/fade-out.
+  Gestita da mostraNotifica() in app.js.
+-->
+<div id="notifica" style="display:none">
+  <span id="notifica-testo"></span>
 </div>
-    </div>
-    <div id="notifica" style="display: none;">
-        <span id="notifica-testo"></span>
-    </div>
-      <script src="supabase.min.js"></script>
-    <script src="app.js"></script>
+
+<!-- ── SCRIPT ──────────────────────────────────────────────────────────
+  Gli script sono in fondo al body per garantire che l'HTML sia completamente
+  caricato prima che JavaScript cerchi gli elementi del DOM.
+  supabase.min.js: libreria Supabase salvata in locale (non CDN) per
+  funzionare anche su reti aziendali con restrizioni esterne.
+-->
+<script src="supabase.min.js"></script>
+<script src="app.js"></script>
+
 </body>
 </html>
