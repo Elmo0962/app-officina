@@ -980,3 +980,530 @@ body {
   cursor: pointer;
   width: 100%;
 }
+
+#schermata-login {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: #1C2B3A;
+  z-index: 1000;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  box-sizing: border-box;
+  padding: 40px 16px 20px;
+}
+
+#login-azienda,
+#login-pin {
+  width: 100%;
+  max-width: 360px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding-top: 20px;
+}
+
+.login-header {
+  text-align: center;
+  margin-bottom: 16px;
+  padding: 0 16px;
+}
+
+.login-header h1 {
+  color: white;
+  font-size: 18px;
+  margin-bottom: 6px;
+}
+
+.login-header p {
+  color: #9CA3AF;
+  font-size: 14px;
+}
+
+#pin-display {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.pin-dot {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #2D3F50;
+  border: 2px solid #4B5563;
+  transition: all 0.15s ease;
+}
+
+.pin-dot.attivo {
+  background: #0F766E;
+  border-color: #0D9488;
+}
+
+#tastiera-pin {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  width: 100%;
+  margin-bottom: 20px;
+}
+
+.tasto-pin {
+  background: #2D3F50;
+  color: white;
+  border: none;
+  border-radius: 10px;
+  font-size: 24px;
+  font-weight: 700;
+  padding: 16px;
+  cursor: pointer;
+  transition: all 0.1s ease;
+  aspect-ratio: 1;
+  touch-action: manipulation;
+}
+
+.tasto-pin:active {
+  background: #0F766E;
+  transform: scale(0.95);
+}
+
+.tasto-vuoto {
+  background: transparent;
+  cursor: default;
+  pointer-events: none;
+}
+
+.tasto-cancella {
+  background: #374151;
+  font-size: 20px;
+}
+
+#lista-aziende {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+  max-width: 360px;
+}
+
+.card-azienda {
+  background: white;
+  border-radius: 12px;
+  padding: 20px 24px;
+  font-size: 18px;
+  font-weight: 700;
+  color: #1C2B3A;
+  cursor: pointer;
+  text-align: center;
+  border: 3px solid transparent;
+  transition: all 0.15s ease;
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+#login-operai-lista {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+  justify-content: center;
+  width: 100%;
+}
+
+.chip-operaio {
+  background: #2D3F50;
+  color: white;
+  padding: 10px 20px;
+  border-radius: 20px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  border: 2px solid #4B5563;
+  display: block;
+}
+
+.chip-operaio.selezionato {
+  background: #0F766E;
+  color: white;
+  border-color: #0D9488;
+}
+
+#barra-utenti {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: #1C2B3A;
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  padding: 10px 20px;
+  z-index: 500;
+  border-top: 2px solid #2D3F50;
+}
+
+.slot-utente {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+  padding: 6px 20px;
+  border-radius: 10px;
+  transition: all 0.15s ease;
+  opacity: 0.5;
+}
+
+.slot-utente.attivo {
+  opacity: 1;
+  background: #2D3F50;
+}
+
+.slot-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: #0F766E;
+  color: white;
+  font-size: 16px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.slot-nome {
+  color: white;
+  font-size: 11px;
+  font-weight: 600;
+  text-align: center;
+  max-width: 80px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.slot-utente:not(.attivo) .slot-avatar {
+  background: #374151;
+}
+
+#app {
+  padding-bottom: 80px;
+}
+
+.titolare-card-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.titolare-card {
+  background: white;
+  border-radius: 12px;
+  padding: 16px;
+  text-align: center;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+}
+
+.titolare-card .numero {
+  font-size: 36px;
+  font-weight: 700;
+  color: #0F766E;
+  line-height: 1;
+  margin-bottom: 6px;
+}
+
+.titolare-card .etichetta {
+  font-size: 12px;
+  color: #4B5563;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+
+#grafico-completate {
+  background: white;
+  border-radius: 12px;
+  padding: 16px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 8px;
+  height: 140px;
+}
+
+.barra-giorno {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex: 1;
+  height: 100%;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
+.barra-giorno .barra {
+  width: 100%;
+  background: #0F766E;
+  border-radius: 4px 4px 0 0;
+  min-height: 4px;
+  transition: height 0.3s ease;
+}
+
+.barra-giorno .barra-numero {
+  font-size: 11px;
+  font-weight: 700;
+  color: #0F766E;
+}
+
+.barra-giorno .barra-label {
+  font-size: 10px;
+  color: #9CA3AF;
+  text-align: center;
+}
+
+.card-operaio-attivo {
+  background: white;
+  border-radius: 10px;
+  padding: 12px 16px;
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.operaio-avatar-sm {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: #0F766E;
+  color: white;
+  font-size: 15px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.operaio-info {
+  flex: 1;
+}
+
+.operaio-info .nome {
+  font-size: 15px;
+  font-weight: 700;
+  color: #1C2B3A;
+}
+
+.operaio-info .completate {
+  font-size: 12px;
+  color: #4B5563;
+}
+
+.operaio-badge {
+  font-size: 13px;
+  font-weight: 700;
+  color: #0F766E;
+}
+
+.titolare-errore-numero {
+  font-size: 48px;
+  font-weight: 700;
+  text-align: center;
+  padding: 20px;
+  border-radius: 12px;
+  background: white;
+}
+
+.titolare-errore-numero.zero {
+  color: #15803D;
+}
+
+.titolare-errore-numero.alcuni {
+  color: #C2410C;
+}
+
+.titolare-errore-numero .sub {
+  font-size: 14px;
+  font-weight: 600;
+  color: #4B5563;
+  display: block;
+  margin-top: 4px;
+}
+
+#btn-nuova-azienda, #btn-nuovo-operaio {
+  width: 100%;
+  padding: 14px;
+  background: #0F766E;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  margin-top: 12px;
+}
+
+.card-admin-azienda {
+  background: white;
+  border-radius: 10px;
+  padding: 14px 16px;
+  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  border-left: 4px solid #0F766E;
+}
+
+.card-admin-azienda:active {
+  background: #F0FDFA;
+}
+
+.card-admin-azienda .az-nome {
+  font-size: 15px;
+  font-weight: 700;
+  color: #1C2B3A;
+}
+
+.card-admin-azienda .az-meta {
+  font-size: 12px;
+  color: #4B5563;
+  margin-top: 2px;
+}
+
+.card-admin-operaio {
+  background: white;
+  border-radius: 10px;
+  padding: 14px 16px;
+  margin-bottom: 10px;
+  border-left: 4px solid #D1D5DB;
+}
+
+.card-admin-operaio .op-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.card-admin-operaio .op-nome {
+  font-size: 15px;
+  font-weight: 700;
+  color: #1C2B3A;
+}
+
+.card-admin-operaio .op-ruolo {
+  font-size: 12px;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 4px;
+  background: #F0FDFA;
+  color: #0F766E;
+}
+
+.card-admin-operaio .op-ruolo.supervisore {
+  background: #EFF6FF;
+  color: #1D4ED8;
+}
+
+.card-admin-operaio .op-ruolo.titolare {
+  background: #FFF7ED;
+  color: #C2410C;
+}
+
+.op-azioni {
+  display: flex;
+  gap: 8px;
+}
+
+.btn-modifica-op, .btn-elimina-op {
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 13px;
+  cursor: pointer;
+  border: none;
+  font-weight: 600;
+}
+
+.btn-modifica-op {
+  background: #EFF6FF;
+  color: #1D4ED8;
+}
+
+.btn-elimina-op {
+  background: #FEF2F2;
+  color: #B91C1C;
+}
+
+#modale-nuova-azienda, #modale-nuovo-operaio {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 200;
+}
+
+#sfondo-modale-az, #sfondo-modale-op {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  background: rgba(0,0,0,0.5);
+}
+
+#contenuto-modale-az, #contenuto-modale-op {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: white;
+  border-radius: 16px 16px 0 0;
+  padding: 24px;
+}
+
+#contenuto-modale-az h2, #contenuto-modale-op h2 {
+  font-size: 18px;
+  margin-bottom: 16px;
+  color: #1C2B3A;
+}
+
+#btn-salva-azienda, #btn-salva-operaio {
+  width: 100%;
+  padding: 14px;
+  background: #0F766E;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 16px;
+  cursor: pointer;
+  margin-bottom: 8px;
+}
+
+#btn-annulla-azienda, #btn-annulla-operaio {
+  width: 100%;
+  padding: 14px;
+  background: none;
+  color: #4B5563;
+  border: none;
+  font-size: 16px;
+  cursor: pointer;
+}
+
+.btn-elimina-az {
+  background: #FEF2F2;
+  border: 1px solid #B91C1C;
+  color: #B91C1C;
+  padding: 6px 10px;
+  border-radius: 6px;
+  font-size: 14px;
+  cursor: pointer;
+}
